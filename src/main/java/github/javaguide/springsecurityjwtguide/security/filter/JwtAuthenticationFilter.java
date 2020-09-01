@@ -44,11 +44,21 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             // 获取登录的信息
             LoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
             rememberMe.set(loginRequest.getRememberMe());
+
+
+
             // 这部分和attemptAuthentication方法中的源码是一样的，
             // 只不过由于这个方法源码的是把用户名和密码这些参数的名字是死的，所以我们重写了一下
+
+
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     loginRequest.getUsername(), loginRequest.getPassword());
+
+
             return authenticationManager.authenticate(authentication);
+
+
+
         } catch (IOException | AuthenticationException e) {
             if (e instanceof AuthenticationException) {
                 throw new LoginFailedException("登录失败！请检查用户名和密码。");
