@@ -8,6 +8,7 @@ import github.javaguide.springsecurityjwtguide.security.service.UserDetailsServi
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,7 +24,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @description Spring Security配置类
  */
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableGlobalMethodSecurity(prePostEnabled = true) // 开启方法权限控制
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
@@ -54,11 +55,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // 禁用 CSRF
                 .csrf().disable()
                 .authorizeRequests()
+                // 放行注册和登录
                 .antMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                // 指定路径下的资源需要验证了的用户才能访问
-                .antMatchers("/api/**").authenticated()
-                .antMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
-                // 其他都放行了
+                .antMatchers(HttpMethod.POST, "/api/users/sign-up/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/users/doLogin/**").permitAll()
+                .antMatchers("api/**").authenticated()
+                //放行其它的
                 .anyRequest().permitAll()
                 .and()
                 //添加自定义Filter
@@ -72,5 +74,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // 防止H2 web 页面的Frame 被拦截
         http.headers().frameOptions().disable();
     }
+
+    @Override
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
 
 }

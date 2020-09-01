@@ -1,15 +1,29 @@
 package github.javaguide.springsecurityjwtguide.system.web.controller;
 
+import com.google.common.collect.Maps;
+import github.javaguide.springsecurityjwtguide.security.constants.SecurityConstants;
+import github.javaguide.springsecurityjwtguide.security.entity.JwtUser;
 import github.javaguide.springsecurityjwtguide.security.utils.CurrentUserUtils;
+import github.javaguide.springsecurityjwtguide.security.utils.JwtTokenUtils;
 import github.javaguide.springsecurityjwtguide.system.service.UserService;
 import github.javaguide.springsecurityjwtguide.system.web.representation.UserRepresentation;
 import github.javaguide.springsecurityjwtguide.system.web.request.UserRegisterRequest;
 import github.javaguide.springsecurityjwtguide.system.web.request.UserUpdateRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,23 +33,41 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author shuang.kou
  */
 @RestController
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+//@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RequestMapping("api/users")
+@Slf4j
 public class UserController {
 
-    private final UserService userService;
-    private final CurrentUserUtils currentUserUtils;
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private CurrentUserUtils currentUserUtils;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
 
     @PostMapping("/sign-up")
-    public ResponseEntity<Void> signUp(@RequestBody @Valid UserRegisterRequest userRegisterRequest) {
+    public ResponseEntity signUp(@RequestBody @Valid UserRegisterRequest userRegisterRequest) {
         userService.save(userRegisterRequest);
-        return ResponseEntity.ok().build();
+        Map<String, Object> body = Maps.newHashMap();
+        body.put("code", 0);
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping
@@ -59,4 +91,46 @@ public class UserController {
         userService.delete(username);
         return ResponseEntity.ok().build();
     }
+
+
+    @PostMapping("doLogin")
+    public ResponseEntity doLogin(HttpServletRequest request, HttpServletResponse response,
+                                  @RequestParam("userName") String userName, @RequestParam("password") String password) {
+        Map<String, Object> body = Maps.newHashMap();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+
+        try {
+            // 内部登录请求
+            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(userName, password, AuthorityUtils.commaSeparatedStringToAuthorityList(""));
+
+
+            // 验证
+            Authentication auth = authenticationManager.authenticate(authRequest);
+
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            body.put("code", 0);
+
+
+            JwtUser jwtUser = (JwtUser) auth.getPrincipal();
+            List<String> authorities = jwtUser.getAuthorities()
+                    .stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
+            // 创建 Token
+            String token = JwtTokenUtils.createToken(jwtUser.getUsername(), authorities, false);
+
+            httpHeaders.set(SecurityConstants.TOKEN_HEADER, token);
+
+
+        } catch (AuthenticationException e) {
+
+            body.put("code", -1);
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).headers(httpHeaders).body(body);
+    }
+
 }
