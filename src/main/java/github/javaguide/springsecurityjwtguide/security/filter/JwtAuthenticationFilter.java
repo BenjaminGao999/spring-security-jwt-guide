@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private final ThreadLocal<Boolean> rememberMe = new ThreadLocal<>();
+
+
     private final AuthenticationManager authenticationManager;
 
     public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
@@ -54,7 +56,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     loginRequest.getUsername(), loginRequest.getPassword());
 
-
+            // 走userDetailsService 和 userDetails 验证username和password
             return authenticationManager.authenticate(authentication);
 
 
@@ -63,6 +65,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             if (e instanceof AuthenticationException) {
                 throw new LoginFailedException("登录失败！请检查用户名和密码。");
             }
+
             throw new LoginFailedException(e.getMessage());
         }
     }
