@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 
 /**
  * @author shuang.kou
- * @description 如果用户名和密码正确，那么过滤器将创建一个JWT Token 并在HTTP Response 的header中返回它，格式：token: "Bearer +具体token值"
+ * @description 认证
+ * 如果用户名和密码正确，那么过滤器将创建一个JWT Token 并在HTTP Response 的header中返回它，格式：token: "Bearer +具体token值"
  */
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
@@ -48,7 +49,6 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             rememberMe.set(loginRequest.getRememberMe());
 
 
-
             // 这部分和attemptAuthentication方法中的源码是一样的，
             // 只不过由于这个方法源码的是把用户名和密码这些参数的名字是死的，所以我们重写了一下
 
@@ -58,7 +58,6 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
             // 走userDetailsService 和 userDetails 验证username和password
             return authenticationManager.authenticate(authentication);
-
 
 
         } catch (IOException | AuthenticationException e) {
